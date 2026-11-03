@@ -7,8 +7,15 @@ const resultType = ref('json');
 const likeFinPrdNm = ref('디딤돌');
 
 const loading = ref(false);
+
 const loanData = ref(null);
+const rateData = ref(null);
 const errorMessage = ref('');
+
+// 이율 데이터
+const pageNo = ref('1');
+const numOfRows = ref('10');
+const dateType = ref('JSON');
 
 const loanItems = computed(() => {
 const items = loanData.value?.response?.body?.items?.item;
@@ -27,6 +34,7 @@ const searchLoanProducts = async () => {
   loading.value = true;
   errorMessage.value = '';
   loanData.value = null;
+  rateData.value = null;
 
   try {
     const response = await axios.get('https://apis.data.go.kr/1160100/service/GetSmallLoanFinanceInstituteInfoService/getOrdinaryFinanceInfo', {
@@ -52,29 +60,62 @@ const searchLoanProducts = async () => {
     loading.value = false;
   }
 };
+
+const searchLoanRate = async () => {
+  loading.value = true;
+  errorMessage.value = '';
+  rateData.value = null;
+  loanData.value = null;
+
+  try {
+    const response = await axios.get('https://apis.data.go.kr/B551408/didimdol-loan-rate/didimdol-info', {
+      params: {
+        serviceKey: serviceKey.value || undefined,
+        pageNo: pageNo.value || undefined,
+        numOfRows: numOfRows.value || undefined,
+        dateType: dateType.value || undefined,
+      },
+      responseType: 'text',
+    });
+
+    rateData.value = response.data;
+    console.log('대출이율 API 응답:', response.data);
+
+  } catch (error) {
+    console.error('대출이율 조회 실패:', error);
+
+    errorMessage.value =
+      error.response?.data?.message ||
+      error.message ||
+      '대출이율 API 호출 중 오류가 발생했습니다.';
+
+  } finally {
+    loading.value = false;
+  }
+};
 </script>
 
 <template>
   <v-container fluid>
     <v-row>
       <v-col cols="12">
-        <h2 class="text-h5 mb-4">대출상품 API 연동 테스트</h2>
+        <h2 class="text-h5 mb-4">API 연동 테스트</h2>
 
         <!-- 검색 영역 -->
         <v-card class="pa-4 mb-4" variant="outlined">
           <v-row align="center">
-            <v-col cols="12" md="4">
-              <v-text-field
-                v-model="keyword"
-                label="대출상품명"
-                placeholder="예: 디딤돌"
-                variant="outlined"
-                density="compact"
-                hide-details
-                clearable
-                @keyup.enter="searchLoanProducts"
-              />
-            </v-col>
+<!--            <v-col cols="12" md="4">-->
+<!--              <v-text-field-->
+<!--                v-model="keyword"-->
+<!--                label="대출상품명"-->
+<!--                placeholder="예: 디딤돌"-->
+<!--                variant="outlined"-->
+<!--                density="compact"-->
+<!--                hide-details-->
+<!--                clearable-->
+<!--                @keyup.enter="searchLoanProducts"-->
+<!--              />-->
+<!--            </v-col>-->
 
             <v-col cols="12" md="2">
               <v-btn
@@ -83,7 +124,16 @@ const searchLoanProducts = async () => {
                 :loading="loading"
                 @click="searchLoanProducts"
               >
-                조회
+                상품조회
+              </v-btn>
+              <br>
+              <v-btn
+                color="primary"
+                block
+                :loading="loading"
+                @click="searchLoanRate"
+              >
+                이율조회
               </v-btn>
             </v-col>
           </v-row>
@@ -194,6 +244,33 @@ const searchLoanProducts = async () => {
           </v-card-text>
         </v-card>
 
+        <!-- 이율 데이터 -->
+        <v-card
+          v-if="rateData"
+          class="pa-4 mb-4"
+          variant="outlined"
+        >
+          <v-card-title>
+            대출이율 API 원본 응답
+          </v-card-title>
+
+          <v-divider class="mb-4" />
+
+          <v-card-text>
+            <pre class="xml-view">{{ rateData }}</pre>
+          </v-card-text>
+        </v-card>
+
+        <!-- 에러 메시지 -->
+        <v-alert
+          v-if="errorMessage"
+          type="error"
+          variant="tonal"
+          class="mb-4"
+        >
+          {{ errorMessage }}
+        </v-alert>
+
       </v-col>
     </v-row>
   </v-container>
@@ -207,6 +284,17 @@ const searchLoanProducts = async () => {
   background: #f5f5f5;
   border-radius: 6px;
   font-size: 12px;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.xml-view {
+  max-height: 600px;
+  overflow: auto;
+  padding: 16px;
+  background: #f5f5f5;
+  border-radius: 6px;
+  font-size: 13px;
   white-space: pre-wrap;
   word-break: break-all;
 }
