@@ -4,8 +4,10 @@ import axios from 'axios';
 import '@/assets/css/loan.css';
 import '@/assets/css/rate.css';
 import LoanCalculate from '../views/components/LoanCalculate.vue'
+import LoanPayHistory from './components/LoanPayHistory.vue'
 
 const loanCalculateDialog = ref(false);
+const loanPayHistoryDialog = ref(false);
 
 const serviceKey = ref('fdb134fabfbf0fdd5a9a839eb75331107ecdc863a50fff257287991601ea9cfa');
 const resultType = ref('json');
@@ -202,9 +204,19 @@ const formatXml = (xml) => {
                 :loading="loading"
                 @click="loanCalculateDialog = true"
               >
-                클릭
+                계산
               </v-btn>
               <LoanCalculate v-model="loanCalculateDialog"/>
+              <br>
+              <v-btn
+                color="primary"
+                block
+                :loading="loading"
+                @click="loanPayHistoryDialog = true"
+              >
+                납부
+              </v-btn>
+              <LoanPayHistory v-model="loanPayHistoryDialog"/>
             </v-col>
           </v-row>
         </v-card>
