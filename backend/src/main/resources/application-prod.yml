@@ -1,0 +1,44 @@
+##############
+# 운영 환경설정
+##############
+spring:
+  datasource:
+    mysql:
+      jdbc-url: >
+        jdbc:log4jdbc:mysql://${DB_HOST_PORT}/OWNR_ADM
+        ?useSSL=false
+        &allowPublicKeyRetrieval=true
+        &serverTimezone=Asia/Seoul
+      username: ${MEWS_ADM_DB_USER}
+      password: ${MEWS_ADM_DB_PASS}
+      hikari:
+        maximum-pool-size: 12
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
+springdoc:  # Swagger 비활성화
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
+jwt:
+  secret: ${JWT_SECRET}
+  cookie-secure: false # 인증서 적용 후 true로 변경 필요
+logging:
+  level:
+    root: INFO
+    com.zaxxer.hikari: WARN
+    org.springframework.web: INFO
+    jdbc:
+      sqltiming: ERROR
+      sqlonly: OFF
+      audit: OFF
+      resultset: OFF
+      resultsettable: OFF
+      connection: OFF
+file:
+  base-path: /uploads
+mews:
+  crypto:
+    master-key: ${CRYPTO_MASTER_KEY}

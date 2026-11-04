@@ -1,0 +1,52 @@
+##############
+# 로컬 환경설정
+##############
+spring:
+  datasource:
+    mysql:
+      jdbc-url: >
+        jdbc:log4jdbc:mysql://112.216.130.180:3306/OWNR_POR
+        ?useSSL=false
+        &allowPublicKeyRetrieval=true
+        &serverTimezone=Asia/Seoul
+      username: mews_por_user
+      password: mewspor1213!!!
+      hikari:
+        maximum-pool-size: 2
+    postgresql:
+      jdbc-url: >
+        jdbc:log4jdbc:postgresql://${PG_HOST_PORT}/${PG_DB_NAME}
+        ?currentSchema=${PG_SCHEMA}
+      username: ${PG_DB_USER}
+      password: ${PG_DB_PASS}
+      hikari:
+        maximum-pool-size: 2
+  data:
+    redis:
+      host: 112.216.130.180
+      port: 9351
+jwt:
+  secret: localjwtkeylocaljwtkeylocaljwtkey
+  cookie-secure: false
+logging:
+  level:
+    root: INFO
+    com.zaxxer.hikari: ERROR
+    org.springframework.web: DEBUG
+    jdbc:
+      sqltiming: INFO
+      sqlonly: OFF
+      audit: OFF
+      resultset: OFF
+      resultsettable: OFF
+      connection: OFF
+file:
+  base-path: D:/data/files
+mews:
+  crypto:
+    master-key: mews!Base@Project#Master$Key2026
+oceanlook:
+  data-api:
+    base-url: https://data.oceanlook.net
+    kobc-statistics-token: ${OCEANLOOK_KOBC_STATISTICS_TOKEN:79d8b84c4e898de98efb8a94d84b98e84a9be8f8bbe5d849f5a49300ef4e0a08}
+    timeout: 10s

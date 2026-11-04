@@ -1,6 +1,11 @@
 <script setup>
 import { ref, computed } from 'vue';
 import axios from 'axios';
+import '@/assets/css/loan.css';
+import '@/assets/css/rate.css';
+import LoanCalculate from '../views/components/LoanCalculate.vue'
+
+const loanCalculateDialog = ref(false);
 
 const serviceKey = ref('fdb134fabfbf0fdd5a9a839eb75331107ecdc863a50fff257287991601ea9cfa');
 const resultType = ref('json');
@@ -93,6 +98,61 @@ const searchLoanRate = async () => {
     loading.value = false;
   }
 };
+
+const formatXml = (xml) => {
+  if (!xml) return '';
+
+  const parser = new DOMParser();
+  const xmlDoc = parser.parseFromString(xml, 'text/xml');
+
+  // XML 파싱 오류 확인
+  if (xmlDoc.querySelector('parsererror')) {
+    return xml;
+  }
+
+  const formatNode = (node, depth = 0) => {
+    const indent = '  '.repeat(depth);
+
+    // 텍스트 노드
+    if (node.nodeType === Node.TEXT_NODE) {
+      return node.textContent.trim();
+    }
+
+    // 요소 노드
+    if (node.nodeType === Node.ELEMENT_NODE) {
+      const children = [...node.childNodes].filter((child) => {
+        return (
+          child.nodeType === Node.ELEMENT_NODE ||
+          (child.nodeType === Node.TEXT_NODE && child.textContent.trim())
+        );
+      });
+
+      // 자식 노드가 없는 경우
+      if (children.length === 0) {
+        return `${indent}<${node.nodeName}></${node.nodeName}>`;
+      }
+
+      // 텍스트만 있는 경우
+      if (
+        children.length === 1 &&
+        children[0].nodeType === Node.TEXT_NODE
+      ) {
+        return `${indent}<${node.nodeName}>${children[0].textContent.trim()}</${node.nodeName}>`;
+      }
+
+      // 자식 요소가 있는 경우
+      const childContent = children
+        .map((child) => formatNode(child, depth + 1))
+        .join('\n');
+
+      return `${indent}<${node.nodeName}>\n${childContent}\n${indent}</${node.nodeName}>`;
+    }
+
+    return '';
+  };
+
+  return formatNode(xmlDoc.documentElement);
+};
 </script>
 
 <template>
@@ -135,6 +195,16 @@ const searchLoanRate = async () => {
               >
                 이율조회
               </v-btn>
+              <br>
+              <v-btn
+                color="primary"
+                block
+                :loading="loading"
+                @click="loanCalculateDialog = true"
+              >
+                클릭
+              </v-btn>
+              <LoanCalculate v-model="loanCalculateDialog"/>
             </v-col>
           </v-row>
         </v-card>
@@ -193,6 +263,8 @@ const searchLoanRate = async () => {
 
           <v-divider />
 
+          <br><br>
+
           <v-table>
             <thead>
             <tr>
@@ -233,6 +305,7 @@ const searchLoanRate = async () => {
           class="mt-4"
           variant="outlined"
         >
+          <br><br>
           <v-card-title>
             API 원본 JSON 응답
           </v-card-title>
@@ -250,6 +323,7 @@ const searchLoanRate = async () => {
           class="pa-4 mb-4"
           variant="outlined"
         >
+          <br><br>
           <v-card-title>
             대출이율 API 원본 응답
           </v-card-title>
@@ -257,7 +331,7 @@ const searchLoanRate = async () => {
           <v-divider class="mb-4" />
 
           <v-card-text>
-            <pre class="xml-view">{{ rateData }}</pre>
+            <pre class="xml-view">{{ formatXml(rateData) }}</pre>
           </v-card-text>
         </v-card>
 
@@ -275,27 +349,3 @@ const searchLoanRate = async () => {
     </v-row>
   </v-container>
 </template>
-
-<style scoped>
-.json-view {
-  max-height: 500px;
-  overflow: auto;
-  padding: 16px;
-  background: #f5f5f5;
-  border-radius: 6px;
-  font-size: 12px;
-  white-space: pre-wrap;
-  word-break: break-all;
-}
-
-.xml-view {
-  max-height: 600px;
-  overflow: auto;
-  padding: 16px;
-  background: #f5f5f5;
-  border-radius: 6px;
-  font-size: 13px;
-  white-space: pre-wrap;
-  word-break: break-all;
-}
-</style>
