@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/backend/src/main/java/com/loan_planner/api/loan")
+@RequestMapping("/api")
 public class LoanPaymentController {
 
     private final LoanPaymentService loanPaymentService;

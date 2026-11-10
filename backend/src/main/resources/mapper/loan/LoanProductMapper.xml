@@ -3,8 +3,42 @@
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
-<mapper namespace="com.loan_planner.api.domain.loan.mapper.LoanProductMapper">
+<mapper namespace="com.loan_planner.api.domain.loan.mapper.LoanMapper">
 
+    <insert
+            id="savePayment"
+            parameterType="com.loan_planner.api.domain.loan.dto.LoanPaymentRequestDTO"
+            useGeneratedKeys="true"
+            keyProperty="paymentId"
+            keyColumn="PAYMENT_ID">
 
+        INSERT INTO TB_LOAN_PAYMENT (
+            LOAN_ID,
+            SCHEDULE_ID,
+            PAYMENT_DATE,
+            TOTAL_AMOUNT,
+            PRINCIPAL_AMOUNT,
+            INTEREST_AMOUNT,
+            REMAINING_PRINCIPAL,
+            PAYMENT_METHOD,
+            PAYMENT_TYPE,
+            MEMO,
+            CREATED_AT,
+            CREATED_BY
+        ) VALUES (
+            #{loanId},
+            #{scheduleId},
+            #{paymentDate},
+            #{totalAmount},
+            #{principalAmount},
+            #{interestAmount},
+            #{remainingPrincipal},
+            #{paymentMethod},
+            #{paymentType},
+            #{memo},
+            SYSDATE,
+            'USER'
+        )
+    </insert>
 
 </mapper>

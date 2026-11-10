@@ -84,7 +84,7 @@ const initialForm = () => ({
 
 const form = ref(initialForm())
 
-// 신규 등록
+// 등록 폼 열기
 const openCreateForm = () => {
   isEdit.value = false
   editingPaymentId.value = null
@@ -92,7 +92,7 @@ const openCreateForm = () => {
   formVisible.value = true
 }
 
-// 수정
+// 수정 폼 열기
 const openEditForm = (item) => {
   isEdit.value = true
   editingPaymentId.value = item.paymentId
@@ -166,8 +166,8 @@ const savePayHistory = async () => {
     payHistoryList.value.unshift(newPayment)
 
     // 백단 정규 처리
-    // await http.post('/loan', payload);
-    // await dialogStore.success('등록되었습니다.');
+    await http.post('/payment', form);
+    await alert("Created Successfully!!")
   }
 
   closeForm()

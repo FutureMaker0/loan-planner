@@ -1,4 +1,4 @@
-package com.loan_planner.backend.api.domain.rate.web;
+package com.loan_planner.api.domain.rate.web;
 
 public class RateController {
 }
