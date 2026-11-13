@@ -1,9 +1,9 @@
 <script setup>
-import { ref, computed } from 'vue'
+import {ref, computed, onMounted} from 'vue'
 import axios from "axios";
 
 const http = axios.create({
-  baseURL: import.meta.env.BASE_URL + 'api',
+  baseURL: '/api',
   withCredentials: true, // 모든 요청에 쿠키를 포함하여 전송
   headers: {
     'Content-Type': 'application/json',
@@ -15,10 +15,17 @@ const props = defineProps({
   modelValue: {
     type: Boolean,
     default: false
-  }
+  },
+  paymentId: { type: Number, default: null },
 })
 
 const emit = defineEmits(['update:modelValue'])
+
+// 목록 및 선택 데이터
+const items = ref([]);
+const checkedItems = ref([]);
+const loading = ref(false);
+const detailInfo = ref({});
 
 const dialog = computed({
   get: () => props.modelValue,
@@ -27,10 +34,10 @@ const dialog = computed({
 
 const headers = [
   { title: '납부일', key: 'paymentDate', align: 'center' },
-  { title: '총 납부금액', key: 'paymentAmount', align: 'end' },
-  { title: '원금', key: 'principalAmount', align: 'end' },
-  { title: '이자', key: 'interestAmount', align: 'end' },
-  { title: '잔여 원금', key: 'remainingBalance', align: 'end' },
+  { title: '총 납부금액', key: 'totalAmount', align: 'end' },
+  { title: '원금 상환액', key: 'principalAmount', align: 'end' },
+  { title: '이자 납부액', key: 'interestAmount', align: 'end' },
+  { title: '잔여 원금', key: 'remainingPrincipal', align: 'end' },
   { title: '납부 방법', key: 'paymentMethod', align: 'center' },
   { title: '관리', key: 'actions', align: 'center', sortable: false }
 ]
@@ -41,30 +48,7 @@ const paymentMethods = [
   '기타'
 ]
 
-// (임시) 추후 API 조회 결과로 대체
-// const payHistoryList = ref([]);
-const payHistoryList = ref([
-  {
-    paymentId: 1,
-    paymentDate: '2026-01-25',
-    paymentAmount: 524670,
-    principalAmount: 124670,
-    interestAmount: 400000,
-    remainingBalance: 99875330,
-    paymentMethod: '자동이체',
-    memo: ''
-  },
-  {
-    paymentId: 2,
-    paymentDate: '2026-02-25',
-    paymentAmount: 524670,
-    principalAmount: 125169,
-    interestAmount: 399501,
-    remainingBalance: 99750161,
-    paymentMethod: '자동이체',
-    memo: ''
-  }
-])
+const payHistoryList = ref([]);
 
 // Form 상태
 const formVisible = ref(false)
@@ -73,13 +57,15 @@ const editingPaymentId = ref(null)
 
 // Form 초기값
 const initialForm = () => ({
-  paymentDate: '',
-  paymentAmount: null,
-  principalAmount: null,
-  interestAmount: null,
-  remainingBalance: null,
-  paymentMethod: '자동이체',
-  memo: ''
+  paymentId: null,            // 항목 번호
+  paymentDate: '',            // 납부일
+  totalAmount: null,          // 총 납부금액
+  principalAmount: null,      // 원금 상환액
+  interestAmount: null,       // 이자 납부액
+  remainingPrincipal: null,   // 납부 후 잔여원금
+  paymentMethod: '자동이체',    // 납부 방법
+  memo: '',                   // 비고
+  useYn: null                 // 사용 여부
 })
 
 const form = ref(initialForm())
@@ -90,6 +76,8 @@ const openCreateForm = () => {
   editingPaymentId.value = null
   form.value = initialForm()
   formVisible.value = true
+
+  getPayHistoryList()
 }
 
 // 수정 폼 열기
@@ -98,6 +86,10 @@ const openEditForm = (item) => {
   editingPaymentId.value = item.paymentId
   form.value = { ...item }
   formVisible.value = true
+
+  console.log("@@@ item = " + JSON.stringify(item))
+  console.log("@@@ editingPaymentId.value = " + editingPaymentId.value)
+  console.log("@@@ item.paymentId = " + item.paymentId)
 }
 
 // Form 닫기
@@ -106,11 +98,21 @@ const closeForm = () => {
   form.value = initialForm()
 }
 
+// 상세 정보 및 이력 조회
+const getPayHistoryList = async () => {
+  try {
+    const response = await http.get('/payment/history');
+    payHistoryList.value = response.data;
+  } catch {
+    /* EMPTY */
+  }
+};
+
 // 등록 / 수정 저장
-const savePayHistory = async () => {
+const savePayHistory = async (paymentId) => {
   if (
     !form.value.paymentDate ||
-    form.value.paymentAmount == null ||
+    form.value.totalAmount == null ||
     form.value.principalAmount == null ||
     form.value.interestAmount == null
   ) {
@@ -119,81 +121,98 @@ const savePayHistory = async () => {
   }
 
   if (
-    form.value.paymentAmount < 0 ||
+    form.value.totalAmount < 0 ||
     form.value.principalAmount < 0 ||
     form.value.interestAmount < 0 ||
-    (form.value.remainingBalance != null &&
-      form.value.remainingBalance < 0)
+    (form.value.remainingPrincipal != null &&
+      form.value.remainingPrincipal < 0)
   ) {
     alert('금액은 음수로 입력할 수 없습니다.')
     return
   }
 
   if (
-    Math.round(form.value.paymentAmount) !==
+    Math.round(form.value.totalAmount) !==
     Math.round(form.value.principalAmount + form.value.interestAmount)
   ) {
     alert('총 납부금액은 원금과 이자의 합계와 일치해야 합니다.')
     return
   }
 
+  const requestData = {
+    // paymentId : form.value.paymentId,
+    paymentDate: form.value.paymentDate,
+    totalAmount: form.value.totalAmount,
+    principalAmount: form.value.principalAmount,
+    interestAmount: form.value.interestAmount,
+    remainingPrincipal: form.value.remainingPrincipal,
+    paymentMethod: form.value.paymentMethod,
+    memo: form.value.memo,
+    useYn: 'Y'
+  }
+
   // 기존 수정
   if (isEdit.value) {
-    const index = payHistoryList.value.findIndex(
-      item => item.paymentId === editingPaymentId.value
-    )
-
-    // 프론트 임시 처리
-    if (index !== -1) {
-      payHistoryList.value[index] = {
-        ...form.value,
-        paymentId: editingPaymentId.value
-      }
+    try {
+      await http.put(`/payment/${paymentId}`, requestData);
+      alert('납부 이력이 수정 되었습니다.')
+      await getPayHistoryList()
+    } catch (error) {
+      console.error('납부 이력 수정 실패:', error)
+      alert('납부 이력 수정에 실패했습니다.')
+      return
     }
-
-    // 백단 정규 처리
-    // await http.put(`/loan/${formData.value.tmsrsSn}`, payload);
-    // await dialogStore.success('수정되었습니다.');
 
   // 신규 추가
   } else {
-    const newPayment = {
-      ...form.value,
-      paymentId: Date.now()
+    try {
+      const response = await http.post('/payment', requestData)
+      // 서버가 저장된 데이터를 반환하는 경우 목록 반영
+      if (response.data && typeof response.data === 'object') {
+        payHistoryList.value.unshift(response.data)
+      }
+      alert('납부 이력이 등록 되었습니다.')
+      await getPayHistoryList()
+    } catch (error) {
+      console.error('납부 이력 등록 실패:', error)
+      alert('납부 이력 등록에 실패했습니다.')
+      return
     }
-
-    // 프론트 임시 처리
-    payHistoryList.value.unshift(newPayment)
-
-    // 백단 정규 처리
-    await http.post('/payment', form);
-    await alert("Created Successfully!!")
   }
 
   closeForm()
 }
 
 // 삭제
-const deletePayment = (paymentId) => {
+const deletePayHistory = async (paymentId) => {
   const confirmed = window.confirm('해당 납부 내역을 삭제하시겠습니까?')
+  if (!confirmed) { return }
 
-  if (!confirmed) return
-
-  payHistoryList.value = payHistoryList.value.filter(
-    item => item.paymentId !== paymentId
-  )
+  try {
+    await http.delete(`/payment/${paymentId}` );
+    alert('납부 이력이 삭제 되었습니다.')
+    await getPayHistoryList();
+  } catch (error) {
+    console.error('납부 이력 삭제 실패:', error)
+    alert('납부 이력 삭제를 실패했습니다.')
+    return
+  }
 }
 
 const formatCurrency = (value) => {
   return `${Number(value || 0).toLocaleString('ko-KR')}원`
 }
+
+onMounted(() => {
+  getPayHistoryList();
+});
 </script>
 
 <template>
   <v-dialog v-model="dialog" max-width="1100" persistent>
     <v-card>
       <v-card-title class="d-flex justify-space-between align-center">
-        <span>Payment History</span>
+        <span>납부 이력</span>
 
         <v-btn
           icon="mdi-close"
@@ -211,9 +230,6 @@ const formatCurrency = (value) => {
 
           <div class="d-flex justify-space-between align-center mb-4">
             <div>
-              <div class="text-subtitle-1 font-weight-bold">
-                납부 이력
-              </div>
               <div class="text-caption text-medium-emphasis">
                 총 {{ payHistoryList.length }}건의 납부 내역
               </div>
@@ -238,8 +254,8 @@ const formatCurrency = (value) => {
             no-data-text="등록된 납부 이력이 없습니다."
           >
 
-            <template #item.paymentAmount="{ item }">
-              {{ formatCurrency(item.paymentAmount) }}
+            <template #item.totalAmount="{ item }">
+              {{ formatCurrency(item.totalAmount) }}
             </template>
 
             <template #item.principalAmount="{ item }">
@@ -250,8 +266,8 @@ const formatCurrency = (value) => {
               {{ formatCurrency(item.interestAmount) }}
             </template>
 
-            <template #item.remainingBalance="{ item }">
-              {{ formatCurrency(item.remainingBalance) }}
+            <template #item.remainingPrincipal="{ item }">
+              {{ formatCurrency(item.remainingPrincipal) }}
             </template>
 
             <!-- 수정 / 삭제 버튼 -->
@@ -270,7 +286,7 @@ const formatCurrency = (value) => {
                   size="small"
                   variant="text"
                   color="error"
-                  @click="deletePayment(item.paymentId)"
+                  @click="deletePayHistory(item.paymentId)"
                 />
               </div>
             </template>
@@ -311,7 +327,7 @@ const formatCurrency = (value) => {
               <!-- 납부금액 -->
               <v-col cols="12" md="6">
                 <v-text-field
-                  v-model.number="form.paymentAmount"
+                  v-model.number="form.totalAmount"
                   label="총 납부금액"
                   type="number"
                   suffix="원"
@@ -347,7 +363,7 @@ const formatCurrency = (value) => {
               <!-- 잔여 원금 -->
               <v-col cols="12" md="6">
                 <v-text-field
-                  v-model.number="form.remainingBalance"
+                  v-model.number="form.remainingPrincipal"
                   label="납부 후 잔여 원금"
                   type="number"
                   suffix="원"

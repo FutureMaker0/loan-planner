@@ -5,13 +5,11 @@
 
 <mapper namespace="com.loan_planner.api.domain.loan.mapper.LoanMapper">
 
-    <insert
-            id="savePayment"
+    <insert id="savePayment"
             parameterType="com.loan_planner.api.domain.loan.dto.LoanPaymentRequestDTO"
             useGeneratedKeys="true"
             keyProperty="paymentId"
-            keyColumn="PAYMENT_ID">
-
+            keyColumn="payment_id">
         INSERT INTO TB_LOAN_PAYMENT (
             LOAN_ID,
             SCHEDULE_ID,
@@ -23,6 +21,7 @@
             PAYMENT_METHOD,
             PAYMENT_TYPE,
             MEMO,
+            USE_YN,
             CREATED_AT,
             CREATED_BY
         ) VALUES (
@@ -36,9 +35,41 @@
             #{paymentMethod},
             #{paymentType},
             #{memo},
-            SYSDATE,
+            #{useYn},
+            NOW(),
             'USER'
         )
     </insert>
+
+    <select id="getPayHistoryList" parameterType="com.loan_planner.api.domain.loan.dto.LoanPaymentSearchDTO">
+        SELECT *
+        FROM TB_LOAN_PAYMENT
+        WHERE USE_YN = 'Y'
+        ORDER BY CREATED_AT DESC
+    </select>
+
+    <update id="updatePayHistoryItem" parameterType="com.loan_planner.api.domain.loan.dto.LoanPaymentHistoryItemDTO">
+        UPDATE TB_LOAN_PAYMENT
+        SET
+            PAYMENT_DATE = #{paymentDate},
+            TOTAL_AMOUNT = #{totalAmount},
+            PRINCIPAL_AMOUNT = #{principalAmount},
+            INTEREST_AMOUNT = #{interestAmount},
+            REMAINING_PRINCIPAL = #{remainingPrincipal},
+            PAYMENT_METHOD = #{paymentMethod},
+            MEMO = #{memo},
+            UPDATED_AT = NOW(),
+            UPDATED_BY = 'USER'
+        WHERE payment_id = #{paymentId}
+    </update>
+
+    <delete id="deletePayHistoryItem" parameterType="com.loan_planner.api.domain.loan.dto.LoanPaymentHistoryItemDTO">
+        UPDATE TB_LOAN_PAYMENT
+        SET
+            USE_YN = 'N',
+            UPDATED_AT = NOW(),
+            UPDATED_BY = 'USER'
+        WHERE payment_id = #{paymentId}
+    </delete>
 
 </mapper>

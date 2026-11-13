@@ -1,13 +1,15 @@
 package com.loan_planner.api.domain.loan.dto;
 
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
-@Data
+@Getter @Setter
 public class LoanPaymentRequestDTO {
 
+    private Long paymentId;
     private Long loanId;
     private Long scheduleId;
 
@@ -22,5 +24,6 @@ public class LoanPaymentRequestDTO {
     private String paymentType;
 
     private String memo;
+    private Character useYn;
 
 }
