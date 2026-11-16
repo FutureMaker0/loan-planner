@@ -87,9 +87,10 @@ const openEditForm = (item) => {
   form.value = { ...item }
   formVisible.value = true
 
-  console.log("@@@ item = " + JSON.stringify(item))
-  console.log("@@@ editingPaymentId.value = " + editingPaymentId.value)
-  console.log("@@@ item.paymentId = " + item.paymentId)
+  // console.log("@@@ ...item = " + JSON.stringify(item));
+  // console.log("@@@ editingPaymentId.value = " + editingPaymentId.value)
+  // console.log("@@@ item.paymentId = " + item.paymentId)
+
 }
 
 // Form 닫기
@@ -154,7 +155,7 @@ const savePayHistory = async (paymentId) => {
   // 기존 수정
   if (isEdit.value) {
     try {
-      await http.put(`/payment/${paymentId}`, requestData);
+      await http.put(`/payment/${editingPaymentId.value}`, requestData);
       alert('납부 이력이 수정 되었습니다.')
       await getPayHistoryList()
     } catch (error) {

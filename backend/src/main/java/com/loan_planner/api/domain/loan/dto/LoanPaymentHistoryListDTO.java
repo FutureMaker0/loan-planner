@@ -17,6 +17,7 @@ public class LoanPaymentHistoryListDTO {
     private BigDecimal interestAmount;
     private BigDecimal remainingPrincipal;
     private String paymentMethod;
+    private String memo;
 
 }
 

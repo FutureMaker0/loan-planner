@@ -43,10 +43,8 @@ public class LoanPaymentController {
 
     @DeleteMapping("/{paymentId}")
     public ResponseEntity<Void> deletePayHistoryItem(@PathVariable Long paymentId) {
-        System.out.println("### deletePayHistoryItem paymentId: " + paymentId);
         LoanPaymentHistoryItemDTO itemDTO = new LoanPaymentHistoryItemDTO();
         itemDTO.setPaymentId(paymentId);
-        System.out.println("### deletePayHistoryItem itemDTO: " + itemDTO.toString());
         loanPaymentService.deletePayHistoryItem(itemDTO);
         return ResponseEntity.ok().build();
     }
