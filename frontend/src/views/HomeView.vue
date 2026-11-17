@@ -3,11 +3,13 @@ import { ref, computed } from 'vue';
 import axios from 'axios';
 import '@/assets/css/loan.css';
 import '@/assets/css/rate.css';
-import LoanCalculate from '../views/components/LoanCalculate.vue'
+import LoanPayCalculate from './components/LoanPayCalculate.vue'
 import LoanPayHistory from './components/LoanPayHistory.vue'
+import LoanPayOptions from "@/views/components/LoanPayOptions.vue";
 
-const loanCalculateDialog = ref(false);
+const loanPayCalculateDialog = ref(false);
 const loanPayHistoryDialog = ref(false);
+const loanPayOptionsDialog = ref(false);
 
 const serviceKey = ref('fdb134fabfbf0fdd5a9a839eb75331107ecdc863a50fff257287991601ea9cfa');
 const resultType = ref('json');
@@ -202,11 +204,11 @@ const formatXml = (xml) => {
                 color="primary"
                 block
                 :loading="loading"
-                @click="loanCalculateDialog = true"
+                @click="loanPayCalculateDialog = true"
               >
                 계산
               </v-btn>
-              <LoanCalculate v-model="loanCalculateDialog"/>
+              <LoanPayCalculate v-model="loanPayCalculateDialog"/>
               <br>
               <v-btn
                 color="primary"
@@ -217,6 +219,16 @@ const formatXml = (xml) => {
                 납부
               </v-btn>
               <LoanPayHistory v-model="loanPayHistoryDialog"/>
+              <br>
+              <v-btn
+                color="primary"
+                block
+                :loading="loading"
+                @click="loanPayOptionsDialog = true"
+              >
+                상환 방식
+              </v-btn>
+              <LoanPayOptions v-model="loanPayOptionsDialog"/>
             </v-col>
           </v-row>
         </v-card>

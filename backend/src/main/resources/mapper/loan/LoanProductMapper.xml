@@ -10,7 +10,7 @@
             useGeneratedKeys="true"
             keyProperty="paymentId"
             keyColumn="payment_id">
-        INSERT INTO TB_LOAN_PAYMENT (
+        INSERT INTO TB_LOAN_PAY_HISTORY (
             LOAN_ID,
             SCHEDULE_ID,
             PAYMENT_DATE,
@@ -43,13 +43,13 @@
 
     <select id="getPayHistoryList" parameterType="com.loan_planner.api.domain.loan.dto.LoanPaymentSearchDTO">
         SELECT *
-        FROM TB_LOAN_PAYMENT
+        FROM TB_LOAN_PAY_HISTORY
         WHERE USE_YN = 'Y'
         ORDER BY CREATED_AT DESC
     </select>
 
     <update id="updatePayHistoryItem" parameterType="com.loan_planner.api.domain.loan.dto.LoanPaymentHistoryItemDTO">
-        UPDATE TB_LOAN_PAYMENT
+        UPDATE TB_LOAN_PAY_HISTORY
         SET
             PAYMENT_DATE = #{paymentDate},
             TOTAL_AMOUNT = #{totalAmount},
@@ -64,12 +64,39 @@
     </update>
 
     <delete id="deletePayHistoryItem" parameterType="com.loan_planner.api.domain.loan.dto.LoanPaymentHistoryItemDTO">
-        UPDATE TB_LOAN_PAYMENT
+        UPDATE TB_LOAN_PAY_HISTORY
         SET
             USE_YN = 'N',
             UPDATED_AT = NOW(),
             UPDATED_BY = 'USER'
         WHERE payment_id = #{paymentId}
     </delete>
+
+    <insert id="savePayOption"
+            parameterType="com.loan_planner.api.domain.loan.dto.payOptions.LoanPayOptionRequestDTO"
+            useGeneratedKeys="true"
+            keyProperty="optionId"
+            keyColumn="option_id">
+        INSERT INTO TB_LOAN_PAY_OPTIONS (
+        OPTION_TYPE,
+        DESCRIPTION,
+        USE_YN,
+        CREATED_AT,
+        CREATED_BY
+        ) VALUES (
+        #{optionType},
+        #{description},
+        #{useYn},
+        NOW(),
+        'USER'
+        )
+    </insert>
+
+    <select id="getPayOptionsList" parameterType="com.loan_planner.api.domain.loan.dto.payOptions.LoanPayOptionSearchDTO">
+        SELECT *
+        FROM TB_LOAN_PAY_OPTIONS
+        WHERE USE_YN = 'Y'
+        ORDER BY CREATED_AT ASC
+    </select>
 
 </mapper>

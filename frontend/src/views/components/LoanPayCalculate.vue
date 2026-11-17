@@ -1,5 +1,14 @@
 <script setup>
-import { ref, computed } from 'vue'
+import {computed, onMounted, ref} from 'vue'
+import axios from "axios";
+
+const http = axios.create({
+  baseURL: '/api',
+  withCredentials: true, // 모든 요청에 쿠키를 포함하여 전송
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
 
 const props = defineProps({
   modelValue: {
@@ -10,7 +19,7 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue'])
 
-const loanCalculateDialog = computed({
+const loanPayCalculateDialog = computed({
   get: () => props.modelValue,
   set: value => emit('update:modelValue', value)
 })
@@ -19,37 +28,57 @@ const loanCalculateDialog = computed({
 // const loanAmount = ref(320000000)
 // const monthlyInterestRate = ref(0.4)
 // const repaymentMonths = ref(360)
+
+// const paymentOptions = ref([])
 const loanAmount = ref(null)
 const monthlyInterestRate = ref(null)
 const repaymentMonths = ref(null)
 
 // 계산 결과
 const schedule = ref([])
-const monthlyPayment = ref(0)
-const totalInterest = ref(0)
-const totalPayment = ref(0)
+const totalAmount = ref(0)      // 총 납부금액 = 원금 + 이자
+const principalAmount = ref(0)  // 원금 상환액
+const interestAmount = ref(0)   // 이자 납부액
+const monthlyAmount = ref(0)    // 월 납입액
 
 const loanForm = ref(null);
+const optionTypes = ref([]);
+const selectedOptionType = ref(null);
 
 const headers = [
   { title: '회차', key: 'month', align: 'center' },
   { title: '상환 원금', key: 'principal', align: 'end' },
-  { title: '이자', key: 'interest', align: 'end' },
-  { title: '월 상환금', key: 'payment', align: 'end' },
+  { title: '상환 이자', key: 'interest', align: 'end' },
+  { title: '총 상환금', key: 'payment', align: 'end' },
   { title: '잔여 원금', key: 'balance', align: 'end' }
 ]
 
+// 상환 방식 조회
+const getPayOptionsList = async () => {
+  try {
+    const response = await http.get('/payment/options');
+    optionTypes.value = response.data;
+
+    console.log("@@@ calculate getPayOptionsList response.data", response.data);
+    console.log("@@@ calculate getPayOptionsList optionTypes.value", optionTypes.value);
+  } catch {
+    /* EMPTY */
+  }
+};
+
 // 원리금균등상환 계산
 const calculateLoan = async () => {
-  // const { valid } = await loanForm.value.validate()
-  // if (!valid) {
-  //   return
-  // }
+  const principal = Number(loanAmount.value)
 
-  const principal = loanAmount.value
-  const rate = monthlyInterestRate.value / 100
-  const months = repaymentMonths.value
+  // 사용자가 입력하는 값은 연이율(%)
+  const annualRate = Number(monthlyInterestRate.value) / 100
 
+  // 연이율을 월이율로 변환
+  const rate = annualRate / 12
+
+  const months = Number(repaymentMonths.value)
+
+  // 입력값 검증
   if (
     !Number.isFinite(principal) ||
     !Number.isFinite(rate) ||
@@ -62,13 +91,11 @@ const calculateLoan = async () => {
     return
   }
 
-  // 월 상환금 계산
+  // 월 납입액 계산
   const payment = rate === 0
     ? principal / months
     : principal * rate * Math.pow(1 + rate, months)
     / (Math.pow(1 + rate, months) - 1)
-
-  monthlyPayment.value = payment
 
   let remainingBalance = principal
   let interestSum = 0
@@ -77,9 +104,11 @@ const calculateLoan = async () => {
   const result = []
 
   for (let month = 1; month <= months; month++) {
+
+    // 해당 월 이자
     const interest = remainingBalance * rate
 
-    // 마지막 회차에는 잔여 원금을 전액 상환
+    // 마지막 회차는 잔여 원금 전액 상환
     const principalPayment = month === months
       ? remainingBalance
       : Math.min(payment - interest, remainingBalance)
@@ -103,24 +132,30 @@ const calculateLoan = async () => {
     })
   }
 
+  // 계산 결과 반영 (반올림은 화면 표시 단계에서 처리)
+  monthlyAmount.value = payment
   schedule.value = result
-  totalInterest.value = interestSum
-  totalPayment.value = paymentSum
+  interestAmount.value = interestSum
+  totalAmount.value = paymentSum
 }
 
 const formatCurrency = value => {
   return Math.round(value).toLocaleString('ko-KR') + '원'
 }
+
+onMounted(() => {
+  getPayOptionsList();
+});
 </script>
 
 <template>
-  <v-dialog v-model="loanCalculateDialog" max-width="900" persistent>
+  <v-dialog v-model="loanPayCalculateDialog" max-width="900" persistent>
     <v-card>
       <v-card-title class="d-flex justify-space-between align-center">
         <v-btn
           icon="mdi-close"
           variant="text"
-          @click="loanCalculateDialog = false"
+          @click="loanPayCalculateDialog = false"
         />
       </v-card-title>
 
@@ -131,6 +166,19 @@ const formatCurrency = value => {
         <v-card-text class="pa-5">
           <v-form ref="loanForm" @submit.prevent="calculateLoan">
             <v-row>
+              <!-- 상환 방식 -->
+              <v-col cols="12">
+                <v-select
+                  v-model="selectedOptionType"
+                  label="상환 방식"
+                  :items="optionTypes"
+                  item-title="optionType"
+                  item-value="optionType"
+                  placeholder="상환 방식을 선택하세요."
+                  variant="outlined"
+                />
+              </v-col>
+
               <!-- 대출 원금 -->
               <v-col cols="12">
                 <v-text-field
@@ -186,29 +234,38 @@ const formatCurrency = value => {
           <h3 class="text-subtitle-1 mb-4">Calculation Result</h3>
 
           <v-row class="mb-4">
-            <v-col cols="12" md="4">
+            <v-col cols="12" md="3">
               <v-card variant="tonal" class="pa-3">
-                <div class="text-caption">Monthly Payment</div>
+                <div class="text-caption">Total Amount</div>
                 <div class="text-h6 font-weight-bold">
-                  {{ formatCurrency(monthlyPayment) }}
+                  {{ formatCurrency(totalAmount) }}
                 </div>
               </v-card>
             </v-col>
 
-            <v-col cols="12" md="4">
+            <v-col cols="12" md="3">
               <v-card variant="tonal" class="pa-3">
-                <div class="text-caption">Total Interest</div>
+                <div class="text-caption">Principal Amount</div>
                 <div class="text-h6 font-weight-bold">
-                  {{ formatCurrency(totalInterest) }}
+                  {{ formatCurrency(loanAmount) }}
                 </div>
               </v-card>
             </v-col>
 
-            <v-col cols="12" md="4">
+            <v-col cols="12" md="3">
               <v-card variant="tonal" class="pa-3">
-                <div class="text-caption">Total Payment</div>
+                <div class="text-caption">Interest Amount</div>
                 <div class="text-h6 font-weight-bold">
-                  {{ formatCurrency(totalPayment) }}
+                  {{ formatCurrency(interestAmount) }}
+                </div>
+              </v-card>
+            </v-col>
+
+            <v-col cols="12" md="3">
+              <v-card variant="tonal" class="pa-3">
+                <div class="text-caption">Monthly Amount</div>
+                <div class="text-h6 font-weight-bold">
+                  {{ formatCurrency(monthlyAmount) }}
                 </div>
               </v-card>
             </v-col>
@@ -242,7 +299,7 @@ const formatCurrency = value => {
 
       <v-card-actions class="pa-4">
         <v-spacer />
-        <v-btn variant="outlined" @click="loanCalculateDialog = false">
+        <v-btn variant="outlined" @click="loanPayCalculateDialog = false">
           Close
         </v-btn>
       </v-card-actions>
