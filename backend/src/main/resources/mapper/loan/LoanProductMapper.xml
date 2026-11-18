@@ -99,4 +99,23 @@
         ORDER BY CREATED_AT ASC
     </select>
 
+    <update id="updatePayOptionItem" parameterType="com.loan_planner.api.domain.loan.dto.payOptions.LoanPayOptionItemDTO">
+        UPDATE TB_LOAN_PAY_OPTIONS
+        SET
+            OPTION_TYPE = #{optionType},
+            DESCRIPTION = #{description},
+            UPDATED_AT = NOW(),
+            UPDATED_BY = 'USER'
+        WHERE option_id = #{optionId}
+    </update>
+
+    <delete id="deletePayOptionItem" parameterType="com.loan_planner.api.domain.loan.dto.payOptions.LoanPayOptionItemDTO">
+        UPDATE TB_LOAN_PAY_OPTIONS
+        SET
+            USE_YN = 'N',
+            UPDATED_AT = NOW(),
+            UPDATED_BY = 'USER'
+        WHERE option_id = #{optionId}
+    </delete>
+
 </mapper>

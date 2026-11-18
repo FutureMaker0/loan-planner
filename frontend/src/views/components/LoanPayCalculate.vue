@@ -58,9 +58,6 @@ const getPayOptionsList = async () => {
   try {
     const response = await http.get('/payment/options');
     optionTypes.value = response.data;
-
-    console.log("@@@ calculate getPayOptionsList response.data", response.data);
-    console.log("@@@ calculate getPayOptionsList optionTypes.value", optionTypes.value);
   } catch {
     /* EMPTY */
   }

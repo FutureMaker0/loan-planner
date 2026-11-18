@@ -16,7 +16,7 @@ const props = defineProps({
     type: Boolean,
     default: false
   },
-  paymentId: { type: Number, default: null },
+  optionId: { type: Number, default: null },
 })
 
 const dialog = computed({
@@ -30,6 +30,7 @@ const headers = [
   { title: '순번', key: 'optionId', align: 'center' },
   { title: '상환 방식명', key: 'optionType', align: 'center' },
   { title: '비고', key: 'description', align: 'center' },
+  { title: '관리', key: 'actions', align: 'center', sortable: false }
 ]
 
 const payOptionsList = ref([]);
@@ -62,7 +63,7 @@ const openCreateForm = () => {
 // 수정 폼 열기
 const openEditForm = (item) => {
   isEdit.value = true
-  editingOptionId.value = item.paymentId
+  editingOptionId.value = item.optionId
   form.value = { ...item }
   formVisible.value = true
 }
