@@ -6,8 +6,9 @@ import lombok.Setter;
 @Getter @Setter
 public class LoanPayOptionRequestDTO {
 
-    private Long optionId;
-    private String optionType;
+    private Long repaymentId;
+    private String repaymentType;
+    private String repaymentName;
     private String description;
     private Character useYn;
 

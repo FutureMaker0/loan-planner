@@ -10,8 +10,9 @@ import java.time.LocalDate;
 @Setter
 public class LoanPayOptionsListDTO {
 
-    private Long optionId;
-    private String optionType;
+    private Long repaymentId;
+    private String repaymentType;
+    private String repaymentName;
     private String description;
     private Character useYn;
 

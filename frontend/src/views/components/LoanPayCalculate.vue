@@ -1,6 +1,8 @@
 <script setup>
 import {computed, onMounted, ref} from 'vue'
 import axios from "axios";
+import { formatCurrency } from '@/utils/commonUtils'
+import {calculateEqualPayment, calculateEqualPrincipal} from '@/utils/repaymentCalculator'
 
 const http = axios.create({
   baseURL: '/api',
@@ -29,35 +31,34 @@ const loanPayCalculateDialog = computed({
 // const monthlyInterestRate = ref(0.4)
 // const repaymentMonths = ref(360)
 
-// const paymentOptions = ref([])
-const loanAmount = ref(null)
-const monthlyInterestRate = ref(null)
-const repaymentMonths = ref(null)
+const monthlyInterestRate = ref(null) // 연 이율
+const repaymentMonths = ref(null)     // 상환 기간
 
 // 계산 결과
 const schedule = ref([])
-const totalAmount = ref(0)      // 총 납부금액 = 원금 + 이자
-const principalAmount = ref(0)  // 원금 상환액
-const interestAmount = ref(0)   // 이자 납부액
-const monthlyAmount = ref(0)    // 월 납입액
+const totalAmount = ref(null)      // 총 납부금액 = 원금 + 이자
+const principalAmount = ref(null)  // 원금 상환액
+const interestAmount = ref(null)   // 이자 납부액
+const monthlyAmount = ref(null)    // 월 납입액
 
-const loanForm = ref(null);
-const optionTypes = ref([]);
-const selectedOptionType = ref(null);
+const repaymentTypes = ref([]);
+const selectedRepaymentName = ref(null);
+
+const result = ref({});
 
 const headers = [
   { title: '회차', key: 'month', align: 'center' },
   { title: '상환 원금', key: 'principal', align: 'end' },
   { title: '상환 이자', key: 'interest', align: 'end' },
   { title: '총 상환금', key: 'payment', align: 'end' },
-  { title: '잔여 원금', key: 'balance', align: 'end' }
+  { title: '잔여 원금', key: 'remaining', align: 'end' }
 ]
 
 // 상환 방식 조회
 const getPayOptionsList = async () => {
   try {
     const response = await http.get('/payment/options');
-    optionTypes.value = response.data;
+    repaymentTypes.value = response.data;
   } catch {
     /* EMPTY */
   }
@@ -65,17 +66,22 @@ const getPayOptionsList = async () => {
 
 // 원리금균등상환 계산
 const calculateLoan = async () => {
-  const principal = Number(loanAmount.value)
-
-  // 사용자가 입력하는 값은 연이율(%)
-  const annualRate = Number(monthlyInterestRate.value) / 100
-
+  // 상환 방식
+  const repaymentName = selectedRepaymentName.value
+  // 상환 원금
+  const principal = Number(principalAmount.value)
+  // 사용자가 입력 연이율(%)
+  const annualRate = Number(monthlyInterestRate.value)
   // 연이율을 월이율로 변환
   const rate = annualRate / 12
-
+  // 상환 개월수
   const months = Number(repaymentMonths.value)
 
   // 입력값 검증
+  if (!repaymentName) {
+    alert('상환 방식을 선택해주세요.')
+    return
+  }
   if (
     !Number.isFinite(principal) ||
     !Number.isFinite(rate) ||
@@ -84,60 +90,30 @@ const calculateLoan = async () => {
     rate < 0 ||
     months <= 0
   ) {
-    alert('대출 원금, 이자율, 상환 기간을 올바르게 입력해주세요.')
+    alert('상환 방식, 대출 원금, 이자율, 상환 기간을 올바르게 입력해주세요.')
     return
   }
 
-  // 월 납입액 계산
-  const payment = rate === 0
-    ? principal / months
-    : principal * rate * Math.pow(1 + rate, months)
-    / (Math.pow(1 + rate, months) - 1)
-
-  let remainingBalance = principal
-  let interestSum = 0
-  let paymentSum = 0
-
-  const result = []
-
-  for (let month = 1; month <= months; month++) {
-
-    // 해당 월 이자
-    const interest = remainingBalance * rate
-
-    // 마지막 회차는 잔여 원금 전액 상환
-    const principalPayment = month === months
-      ? remainingBalance
-      : Math.min(payment - interest, remainingBalance)
-
-    const actualPayment = principalPayment + interest
-
-    remainingBalance = Math.max(
-      0,
-      remainingBalance - principalPayment
-    )
-
-    interestSum += interest
-    paymentSum += actualPayment
-
-    result.push({
-      month,
-      principal: principalPayment,
-      interest,
-      payment: actualPayment,
-      balance: remainingBalance
-    })
+  try {
+    if (repaymentName === '원리금 균등분할상환') {
+      console.log("@@@ Execute 1")
+      result.value = calculateEqualPayment(principal, annualRate, months)
+    } else if (repaymentName === '원금 균등분할상환') {
+      console.log("@@@ Execute 2")
+      result.value = calculateEqualPrincipal(principal, annualRate, months)
+    } else {
+      console.log("@@@ Execute 3")
+    }
+  } catch (e) {
+    /* */
   }
 
-  // 계산 결과 반영 (반올림은 화면 표시 단계에서 처리)
-  monthlyAmount.value = payment
-  schedule.value = result
-  interestAmount.value = interestSum
-  totalAmount.value = paymentSum
-}
-
-const formatCurrency = value => {
-  return Math.round(value).toLocaleString('ko-KR') + '원'
+  // 화면 데이터 반영
+  totalAmount.value = result.value.totalAmount
+  principalAmount.value = principal
+  interestAmount.value = result.value.interestAmount
+  monthlyAmount.value = result.value.monthlyAmount
+  schedule.value = result.value.schedule
 }
 
 onMounted(() => {
@@ -166,21 +142,22 @@ onMounted(() => {
               <!-- 상환 방식 -->
               <v-col cols="12">
                 <v-select
-                  v-model="selectedOptionType"
+                  v-model="selectedRepaymentName"
                   label="상환 방식"
-                  :items="optionTypes"
-                  item-title="optionType"
-                  item-value="optionType"
+                  :items="repaymentTypes"
+                  item-title="repaymentName"
+                  item-value="repaymentName"
                   placeholder="상환 방식을 선택하세요."
                   variant="outlined"
+                  :rules="[v => v !== null || '상환 방식을 입력하세요.']"
                 />
               </v-col>
 
-              <!-- 대출 원금 -->
+              <!-- 원금 상환액 -->
               <v-col cols="12">
                 <v-text-field
-                  v-model.number="loanAmount"
-                  label="대출 원금"
+                  v-model.number="principalAmount"
+                  label="원금 상환액"
                   placeholder="대출 원금을 입력하세요."
                   suffix="원"
                   type="number"
@@ -193,8 +170,8 @@ onMounted(() => {
               <v-col cols="12">
                 <v-text-field
                   v-model.number="monthlyInterestRate"
-                  label="월 이자율"
-                  placeholder="월 이자율을 입력하세요."
+                  label="연 이율"
+                  placeholder="연 이율을 입력하세요."
                   suffix="%"
                   type="number"
                   variant="outlined"
@@ -235,7 +212,7 @@ onMounted(() => {
               <v-card variant="tonal" class="pa-3">
                 <div class="text-caption">Total Amount</div>
                 <div class="text-h6 font-weight-bold">
-                  {{ formatCurrency(totalAmount) }}
+                  {{ formatCurrency(result.totalAmount) }}
                 </div>
               </v-card>
             </v-col>
@@ -244,7 +221,7 @@ onMounted(() => {
               <v-card variant="tonal" class="pa-3">
                 <div class="text-caption">Principal Amount</div>
                 <div class="text-h6 font-weight-bold">
-                  {{ formatCurrency(loanAmount) }}
+                  {{ formatCurrency(principalAmount) }}
                 </div>
               </v-card>
             </v-col>
@@ -253,7 +230,7 @@ onMounted(() => {
               <v-card variant="tonal" class="pa-3">
                 <div class="text-caption">Interest Amount</div>
                 <div class="text-h6 font-weight-bold">
-                  {{ formatCurrency(interestAmount) }}
+                  {{ formatCurrency(result.interestAmount) }}
                 </div>
               </v-card>
             </v-col>
@@ -262,7 +239,7 @@ onMounted(() => {
               <v-card variant="tonal" class="pa-3">
                 <div class="text-caption">Monthly Amount</div>
                 <div class="text-h6 font-weight-bold">
-                  {{ formatCurrency(monthlyAmount) }}
+                  {{ formatCurrency(result.monthlyAmount) }}
                 </div>
               </v-card>
             </v-col>
@@ -287,8 +264,8 @@ onMounted(() => {
               {{ formatCurrency(item.payment) }}
             </template>
 
-            <template #item.balance="{ item }">
-              {{ formatCurrency(item.balance) }}
+            <template #item.remaining="{ item }">
+              {{ formatCurrency(item.remaining) }}
             </template>
           </v-data-table>
         </div>

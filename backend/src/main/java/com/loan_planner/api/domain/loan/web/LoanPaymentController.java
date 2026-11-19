@@ -66,17 +66,17 @@ public class LoanPaymentController {
         return ResponseEntity.ok(loanPaymentService.getPayOptionsList(searchDto));
     }
 
-    @PutMapping("/options/{optionId}")
-    public ResponseEntity<Void> updatePayOptionItem(@PathVariable Long optionId, @RequestBody LoanPayOptionItemDTO itemDTO) {
-        itemDTO.setOptionId(optionId);
+    @PutMapping("/options/{repaymentId}")
+    public ResponseEntity<Void> updatePayOptionItem(@PathVariable Long repaymentId, @RequestBody LoanPayOptionItemDTO itemDTO) {
+        itemDTO.setRepaymentId(repaymentId);
         loanPaymentService.updatePayOptionItem(itemDTO);
         return ResponseEntity.ok().build();
     }
 
-    @DeleteMapping("/options/{optionId}")
-    public ResponseEntity<Void> deletePayOptionItem(@PathVariable Long optionId) {
+    @DeleteMapping("/options/{repaymentId}")
+    public ResponseEntity<Void> deletePayOptionItem(@PathVariable Long repaymentId) {
         LoanPayOptionItemDTO itemDTO = new LoanPayOptionItemDTO();
-        itemDTO.setOptionId(optionId);
+        itemDTO.setRepaymentId(repaymentId);
         loanPaymentService.deletePayOptionItem(itemDTO);
         return ResponseEntity.ok().build();
     }

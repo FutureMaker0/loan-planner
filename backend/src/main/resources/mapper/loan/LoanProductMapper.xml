@@ -75,16 +75,18 @@
     <insert id="savePayOption"
             parameterType="com.loan_planner.api.domain.loan.dto.payOptions.LoanPayOptionRequestDTO"
             useGeneratedKeys="true"
-            keyProperty="optionId"
-            keyColumn="option_id">
-        INSERT INTO TB_LOAN_PAY_OPTIONS (
-        OPTION_TYPE,
+            keyProperty="repaymentId"
+            keyColumn="repayment_id">
+        INSERT INTO TB_LOAN_PAY_REPAYMENT (
+        REPAYMENT_TYPE,
+        REPAYMENT_NAME,
         DESCRIPTION,
         USE_YN,
         CREATED_AT,
         CREATED_BY
         ) VALUES (
-        #{optionType},
+        #{repaymentType},
+        #{repaymentName},
         #{description},
         #{useYn},
         NOW(),
@@ -94,28 +96,29 @@
 
     <select id="getPayOptionsList" parameterType="com.loan_planner.api.domain.loan.dto.payOptions.LoanPayOptionSearchDTO">
         SELECT *
-        FROM TB_LOAN_PAY_OPTIONS
+        FROM TB_LOAN_PAY_REPAYMENT
         WHERE USE_YN = 'Y'
         ORDER BY CREATED_AT ASC
     </select>
 
     <update id="updatePayOptionItem" parameterType="com.loan_planner.api.domain.loan.dto.payOptions.LoanPayOptionItemDTO">
-        UPDATE TB_LOAN_PAY_OPTIONS
+        UPDATE TB_LOAN_PAY_REPAYMENT
         SET
-            OPTION_TYPE = #{optionType},
+            REPAYMENT_TYPE = #{repaymentType},
+            REPAYMENT_NAME = #{repaymentName},
             DESCRIPTION = #{description},
             UPDATED_AT = NOW(),
             UPDATED_BY = 'USER'
-        WHERE option_id = #{optionId}
+        WHERE REPAYMENT_ID = #{repaymentId}
     </update>
 
     <delete id="deletePayOptionItem" parameterType="com.loan_planner.api.domain.loan.dto.payOptions.LoanPayOptionItemDTO">
-        UPDATE TB_LOAN_PAY_OPTIONS
+        UPDATE TB_LOAN_PAY_REPAYMENT
         SET
             USE_YN = 'N',
             UPDATED_AT = NOW(),
             UPDATED_BY = 'USER'
-        WHERE option_id = #{optionId}
+        WHERE REPAYMENT_ID = #{repaymentId}
     </delete>
 
 </mapper>
